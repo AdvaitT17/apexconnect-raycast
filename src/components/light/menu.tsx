@@ -36,7 +36,6 @@ function LightTurnOnMenubarItem(props: { state: State }) {
       await apex.turnOnLight(props.state.entity_id);
       await stateChangeSleep();
     } catch (error) {
-      console.log(error);
       showFailureToast(error);
     }
   };

@@ -23,7 +23,6 @@ export function getCameraRefreshInterval(): number | null {
   }
   const msec = parseFloat(userValue);
   if (Number.isNaN(msec)) {
-    console.log(`invalid value ${userValue}, fallback to null`);
     return null;
   }
   if (msec < 1) {

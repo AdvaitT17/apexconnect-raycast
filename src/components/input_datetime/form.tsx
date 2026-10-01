@@ -2,14 +2,12 @@ import { showFailureToast } from "@raycast/utils";
 import { apex } from "@lib/common";
 import { State } from "@lib/apexapi";
 import { Action, ActionPanel, Form, useNavigation } from "@raycast/api";
-import { dateToUnixTimestamp, unixTimestampToDate } from "./utils";
+import { dateToUnixTimestamp } from "./utils";
 
 export function InputDateTimeForm(props: { state: State; hasDate: boolean; hasTime: boolean }): JSX.Element {
   const s = props.state;
   const hasDate = props.hasDate;
   const hasTime = props.hasTime;
-  const current = unixTimestampToDate(s.attributes.timestamp);
-  console.log(current);
   const { pop } = useNavigation();
   const handle = async (input: Form.Values) => {
     try {

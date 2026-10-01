@@ -100,18 +100,8 @@ export class ApexConnectClient {
   private isHomeSSIDActive(): boolean {
     const ssid = getWifiSSIDSync();
     if (ssid) {
-      console.log("Current SSID: ", ssid);
-      if (!this.wifiSSIDs || this.wifiSSIDs.length <= 0) {
-        console.log("No WiFi SSIDs are specified for the internal url");
-      }
       if (this.wifiSSIDs && this.wifiSSIDs.includes(ssid)) {
         return true;
-      } else {
-        console.log(
-          `Current SSID (${ssid}) is not in home network list (${
-            this.wifiSSIDs && this.wifiSSIDs.length > 0 ? this.wifiSSIDs.join(", ") : "No SSIDS defined"
-          })`,
-        );
       }
     }
     return false;
@@ -120,7 +110,6 @@ export class ApexConnectClient {
   private async pingHostSuccessful(url: string): Promise<boolean> {
     try {
       const u = new URL(url);
-      console.log(`ping ${u.hostname}`);
       const res = await ping.promise.probe(u.hostname, {
         timeout: 2,
         extra: ["-i", "1", "-c", "1"],
@@ -162,18 +151,14 @@ export class ApexConnectClient {
     }
     if (this.urlInternal && this.urlInternal.length > 0) {
       if (this.isHomeSSIDActive()) {
-        console.log("Current SSID is Home Network");
         this._nearestURL = this.urlInternal;
         return this.urlInternal;
       }
       if (this.usePing) {
         const res = await this.pingHostSuccessful(this.urlInternal);
         if (res) {
-          console.log(`ping to internal host ${this.urlInternal} successful`);
           this._nearestURL = this.urlInternal;
           return this.urlInternal;
-        } else {
-          console.log(`internal host ${this.urlInternal} is not pingable`);
         }
       }
     }
@@ -185,7 +170,6 @@ export class ApexConnectClient {
   public async fetch(url: string, params: { [key: string]: string } = {}): Promise<any> {
     const ps = paramString(params);
     const fullUrl = urljoin(await this.nearestURL(), "api", url + ps);
-    console.log(`send GET request: ${fullUrl}`);
     try {
       const response = await fetch(fullUrl, {
         agent: this.httpsAgent(fullUrl),
@@ -196,19 +180,16 @@ export class ApexConnectClient {
         },
       });
       const json = await response.json();
-      console.log("JJJ");
       return json;
     } catch (error) {
-      console.log(error);
+      showFailureToast(error, { title: "Error" });
     }
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public async post(url: string, params: { [key: string]: any } = {}): Promise<Response> {
     const fullUrl = urljoin(await this.nearestURL(), "api", url);
-    console.log(`send POST request: ${fullUrl}`);
     const body = JSON.stringify(params);
-    console.log(body);
     //try {
     const response = await fetch(fullUrl, {
       agent: this.httpsAgent(fullUrl),
@@ -219,12 +200,10 @@ export class ApexConnectClient {
       },
       body: body,
     });
-    console.log(`status: ${response.status}`);
     if (response.status < 200 || response.status >= 300) {
       throw new Error(`Status code ${response.status}`);
     }
     //} catch (e) {
-    //    console.log(e);
     //}
     return response;
   }
@@ -374,7 +353,6 @@ export class ApexConnectClient {
 
   async downloadFile(url: string, params: { localFilepath: string }): Promise<string> {
     const fullUrl = urljoin(this.url, "api", url);
-    console.log(`download ${url}`);
     const response = await fetch(fullUrl, {
       method: "GET",
       headers: {
@@ -385,7 +363,6 @@ export class ApexConnectClient {
     if (!response.ok) {
       throw new Error(`unexpected response ${response.statusText}`);
     }
-    console.log(`write ${url} to ${params.localFilepath}`);
     await streamPipeline(response.body, fs.createWriteStream(params.localFilepath));
     return params.localFilepath;
   }
@@ -397,25 +374,17 @@ export class ApexConnectClient {
   async registerMobileDevice(con: Connection) {
     const registrationData = await generateMobileDeviceRegistration();
     let webhook_id = await LocalStorage.getItem<string>("webhook_id");
-    if (webhook_id && webhook_id.length > 0) {
-      console.log(`Use existing webhook id ${webhook_id}`);
-    } else {
-      console.log("Register Device in Apex Connect");
+    if (!webhook_id || webhook_id.length <= 0) {
       const response = await this.post("mobile_app/registrations", registrationData);
       const data: ApexMobileDeviceRegistrationResponse = await response.json();
       webhook_id = data.webhook_id;
       await LocalStorage.setItem("webhook_id", webhook_id);
     }
 
-    if (this.messageSubscription) {
-      console.log("Use existing message subscription");
-    } else {
-      console.log("Create message subscription");
+    if (!this.messageSubscription) {
       try {
         this.messageSubscription = await con.subscribeMessage(
-          (result) => {
-            console.log(result);
-          },
+          () => undefined,
           {
             type: "mobile_app/push_notification_channel",
             webhook_id: webhook_id,
@@ -424,7 +393,7 @@ export class ApexConnectClient {
           { resubscribe: true },
         );
       } catch (error) {
-        console.log(error);
+        showFailureToast(error, { title: "Error" });
       }
     }
   }
