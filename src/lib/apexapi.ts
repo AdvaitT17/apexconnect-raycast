@@ -349,19 +349,33 @@ export class ApexConnectClient {
 
   async downloadFile(url: string, params: { localFilepath: string }): Promise<string> {
     const fullUrl = urljoin(await this.nearestURL(), "api", url);
-    const response = await fetch(fullUrl, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${this.token}`,
-      },
+    // Snapshot endpoints (e.g. camera_proxy) can serve a stale cached frame
+    // over a reused keep-alive connection; a dedicated one-shot dispatcher
+    // forces a fresh connection so each call actually gets a new frame.
+    const dispatcher = new Agent({
+      connect: { rejectUnauthorized: !this._ignoreCerts },
+      connections: 1,
+      pipelining: 0,
     });
-    if (!response.ok) {
-      throw new Error(`unexpected response ${response.statusText}`);
+    try {
+      const response = await fetch(fullUrl, {
+        method: "GET",
+        dispatcher,
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${this.token}`,
+          Connection: "close",
+        },
+      });
+      if (!response.ok) {
+        throw new Error(`unexpected response ${response.statusText}`);
+      }
+      const buffer = Buffer.from(await response.arrayBuffer());
+      await fs.promises.writeFile(params.localFilepath, buffer);
+      return params.localFilepath;
+    } finally {
+      await dispatcher.close();
     }
-    const buffer = Buffer.from(await response.arrayBuffer());
-    await fs.promises.writeFile(params.localFilepath, buffer);
-    return params.localFilepath;
   }
 
   async getCameraProxyURL(entityID: string, localFilepath: string): Promise<void> {
