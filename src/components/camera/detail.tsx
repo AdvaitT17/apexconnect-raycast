@@ -7,13 +7,13 @@ import { useImage } from "./hooks";
 
 export function CameraImageDetail(props: { state: State }): JSX.Element {
   const s = props.state;
-  const { localFilepath, isLoading, error } = useImage(s.entity_id);
+  const { imageFilepath, isLoading, error } = useImage(s.entity_id);
   if (error) {
     showFailureToast(error, { title: "Could not fetch image" });
   }
   let md = `# ${s.attributes.friendly_name || s.entity_id}`;
-  if (localFilepath) {
-    md += `\n![Camera](${localFilepath})`;
+  if (imageFilepath) {
+    md += `\n![Camera](${imageFilepath})`;
   }
   return (
     <Detail
