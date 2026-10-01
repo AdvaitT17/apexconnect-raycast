@@ -48,6 +48,5 @@ export async function getApexWSConnection(): Promise<Connection> {
 
 export function shouldDisplayEntityID(): boolean {
   const preferences = getPreferenceValues();
-  const result = (preferences.instance as boolean) || false;
-  return result;
+  return (preferences.showEntityId as boolean) || false;
 }

@@ -7,6 +7,7 @@
   "license": "MIT",
   "description": "Apex Connect+ remote control. Control your house with Raycast 🚀",
   "icon": "apex-connect.png",
+  "platforms": ["macOS"],
   "commands": [
     {
       "name": "index",

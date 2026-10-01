@@ -99,7 +99,7 @@ export function StateListItem(props: { state: State }): JSX.Element {
         icon = apex.urlJoin(ep);
       }
     }
-    if (shouldDisplayEntityID()) {
+    if (!shouldDisplayEntityID()) {
       return extra;
     }
     if (extra) {
