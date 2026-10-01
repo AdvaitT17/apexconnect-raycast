@@ -382,6 +382,57 @@ export class ApexConnectClient {
     await this.downloadFile(`camera_proxy/${entityID}`, { localFilepath: localFilepath });
   }
 
+  /**
+   * The still-image snapshot endpoint (camera_proxy) can serve a cached frame
+   * indefinitely; the backend only pulls fresh frames from the camera while an
+   * MJPEG stream consumer is attached. Reopening a stream connection on every
+   * poll makes some cameras/integrations stop responding for minutes, so this
+   * keeps one connection open and hands every decoded JPEG frame to the
+   * caller until `signal` aborts (or the stream itself ends/errors).
+   */
+  async readCameraStream(
+    streamUrl: string,
+    signal: AbortSignal,
+    onFrame: (frame: Buffer) => void | Promise<void>,
+  ): Promise<void> {
+    const response = await fetch(streamUrl, {
+      method: "GET",
+      dispatcher: this.httpsDispatcher(streamUrl),
+      signal,
+    });
+    if (!response.ok || !response.body) {
+      throw new Error(`unexpected response ${response.statusText}`);
+    }
+    const reader = response.body.getReader();
+    try {
+      let acc = Buffer.alloc(0);
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) {
+          if (signal.aborted) {
+            return;
+          }
+          throw new Error("camera stream ended unexpectedly");
+        }
+        acc = Buffer.concat([acc, Buffer.from(value)]);
+        for (;;) {
+          const start = acc.indexOf(Buffer.from([0xff, 0xd8]));
+          if (start === -1) {
+            break;
+          }
+          const end = acc.indexOf(Buffer.from([0xff, 0xd9]), start + 2);
+          if (end === -1) {
+            break;
+          }
+          await onFrame(acc.subarray(start, end + 2));
+          acc = acc.subarray(end + 2);
+        }
+      }
+    } finally {
+      await reader.cancel().catch(() => undefined);
+    }
+  }
+
   async registerMobileDevice(con: Connection) {
     const registrationData = await generateMobileDeviceRegistration();
     let webhook_id = await LocalStorage.getItem<string>("webhook_id");

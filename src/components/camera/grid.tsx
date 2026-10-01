@@ -34,7 +34,7 @@ export function getCameraRefreshInterval(): number | null {
 
 function CameraGridItem(props: { state: State }): JSX.Element {
   const s = props.state;
-  const { localFilepath, imageFilepath } = useImage(s.entity_id);
+  const { localFilepath, imageFilepath } = useImage(s);
   const content: Image.ImageLike =
     s.state === "unavailable" ? { source: "video.png", tintColor: Color.Blue } : { source: localFilepath || "" };
   const titleParts = [getFriendlyName(s)];
