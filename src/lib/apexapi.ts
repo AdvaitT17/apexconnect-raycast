@@ -439,6 +439,11 @@ export class ApexConnectClient {
           await onFrame(acc.subarray(start, end + 2));
           acc = acc.subarray(end + 2);
         }
+        // Bound memory if a frame never completes (corrupt/truncated JPEG):
+        // a real frame is never anywhere near this large.
+        if (acc.length > 5 * 1024 * 1024) {
+          acc = Buffer.alloc(0);
+        }
       }
     } finally {
       await reader.cancel().catch(() => undefined);
