@@ -1,6 +1,7 @@
+import { showFailureToast } from "@raycast/utils";
 import { EntityStandardActionSections } from "@components/entity";
 import { State } from "@lib/apexapi";
-import { ActionPanel, Detail, Toast, showToast } from "@raycast/api";
+import { ActionPanel, Detail } from "@raycast/api";
 import { CameraOpenStreamInBrowserAction, CameraOpenStreamInIINAAction, CameraOpenStreamInVLCAction } from "./actions";
 import { useImage } from "./hooks";
 
@@ -8,11 +9,7 @@ export function CameraImageDetail(props: { state: State }): JSX.Element {
   const s = props.state;
   const { localFilepath, isLoading, error } = useImage(s.entity_id);
   if (error) {
-    showToast({
-      style: Toast.Style.Failure,
-      title: "Could not fetch image",
-      message: error,
-    });
+    showFailureToast(error, { title: "Could not fetch image" });
   }
   let md = `# ${s.attributes.friendly_name || s.entity_id}`;
   if (localFilepath) {

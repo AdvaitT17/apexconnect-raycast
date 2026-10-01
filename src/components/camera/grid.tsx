@@ -1,9 +1,10 @@
+import { showFailureToast } from "@raycast/utils";
 import { EntityStandardActionSections } from "@components/entity";
 import { useHAStates } from "@components/hooks";
 import { useStateSearch } from "@components/state/hooks";
 import { State } from "@lib/apexapi";
 import { getFriendlyName } from "@lib/utils";
-import { Action, ActionPanel, Color, Grid, Image, List, Toast, getPreferenceValues, showToast } from "@raycast/api";
+import { Action, ActionPanel, Color, Grid, Image, List, getPreferenceValues } from "@raycast/api";
 import {
   CameraOpenStreamInBrowserAction,
   CameraOpenStreamInIINAAction,
@@ -79,11 +80,7 @@ export function CameraGrid(): JSX.Element {
   const { states } = useStateSearch(undefined, "camera", "", allStates);
 
   if (error) {
-    showToast({
-      style: Toast.Style.Failure,
-      title: "Cannot get Apex Connect Cameras",
-      message: error.message,
-    });
+    showFailureToast(error, { title: "Cannot get Apex Connect Cameras" });
   }
 
   if (!states) {

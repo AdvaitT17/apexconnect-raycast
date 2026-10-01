@@ -1,7 +1,7 @@
-import { LocalStorage, showToast, Toast } from "@raycast/api";
+import { showFailureToast } from "@raycast/utils";
+import { LocalStorage } from "@raycast/api";
 import fetch, { Response } from "node-fetch";
 import urljoin from "url-join";
-import { getErrorMessage } from "./utils";
 import fs from "fs";
 import { pipeline } from "stream";
 import util from "util";
@@ -236,11 +236,7 @@ export class ApexConnectClient {
       await this.post(`services/${domain}/${service}`, (params = userparams));
       return true;
     } catch (error) {
-      showToast({
-        style: Toast.Style.Failure,
-        title: "Error",
-        message: getErrorMessage(error),
-      });
+      showFailureToast(error);
       return false;
     }
   }
