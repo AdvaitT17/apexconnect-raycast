@@ -351,7 +351,7 @@ export class ApexConnectClient {
   }
 
   async downloadFile(url: string, params: { localFilepath: string }): Promise<string> {
-    const fullUrl = urljoin(this.url, "api", url);
+    const fullUrl = urljoin(await this.nearestURL(), "api", url);
     const response = await fetch(fullUrl, {
       method: "GET",
       headers: {
