@@ -2,8 +2,6 @@ import { showFailureToast } from "@raycast/utils";
 import { LocalStorage } from "@raycast/api";
 import urljoin from "url-join";
 import fs from "fs";
-import { pipeline, Readable } from "stream";
-import util from "util";
 import { Agent, Response, fetch } from "undici";
 import { getWifiSSIDSync } from "./wifi";
 import * as ping from "ping";
@@ -11,7 +9,6 @@ import { URL } from "url";
 import { queryMdns } from "./mdns";
 import { generateMobileDeviceRegistration, ApexMobileDeviceRegistrationResponse } from "./mobiledevice";
 import { Connection } from "@apexinfosysindia/js-websocket";
-const streamPipeline = util.promisify(pipeline);
 
 function paramString(params: { [key: string]: string }): string {
   const p: string[] = [];
@@ -362,10 +359,8 @@ export class ApexConnectClient {
     if (!response.ok) {
       throw new Error(`unexpected response ${response.statusText}`);
     }
-    if (!response.body) {
-      throw new Error(`no response body for ${fullUrl}`);
-    }
-    await streamPipeline(Readable.fromWeb(response.body), fs.createWriteStream(params.localFilepath));
+    const buffer = Buffer.from(await response.arrayBuffer());
+    await fs.promises.writeFile(params.localFilepath, buffer);
     return params.localFilepath;
   }
 
