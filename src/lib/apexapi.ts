@@ -269,7 +269,7 @@ export class ApexConnectClient {
   }
 
   async playMedia(entityID: string): Promise<boolean> {
-    return await this.callService("media_player", "play_media", { entity_id: entityID });
+    return await this.callService("media_player", "media_play", { entity_id: entityID });
   }
 
   async playPauseMedia(entityID: string): Promise<boolean> {
@@ -301,7 +301,7 @@ export class ApexConnectClient {
   }
 
   async muteMedia(entityID: string): Promise<boolean> {
-    return await this.callService("media_player", "volume_mute", { entity_id: entityID });
+    return await this.callService("media_player", "volume_mute", { entity_id: entityID, is_volume_muted: true });
   }
 
   async setVolumeLevelMedia(entityID: string, volumeLevel: number): Promise<boolean> {
