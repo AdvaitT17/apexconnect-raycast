@@ -13,7 +13,9 @@ export function CameraImageDetail(props: { state: State }): JSX.Element {
   }
   let md = `# ${s.attributes.friendly_name || s.entity_id}`;
   if (imageFilepath) {
-    md += `\n![Camera](${imageFilepath})`;
+    // Wrapped in <> per CommonMark's "pointy bracket" link form, since
+    // Raycast's cache directory path contains a space ("Application Support").
+    md += `\n![Camera](<${imageFilepath}>)`;
   }
   return (
     <Detail
