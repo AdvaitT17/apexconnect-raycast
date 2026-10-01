@@ -1,6 +1,7 @@
 import { getCacheFilepath } from "@lib/cache";
 import { apex } from "@lib/common";
 import { getErrorMessage } from "@lib/utils";
+import fs from "fs/promises";
 import { useEffect, useState } from "react";
 import { getCameraRefreshInterval } from "./grid";
 import { fileToBase64Image } from "./utils";
@@ -21,6 +22,7 @@ export function useImage(
 
   useEffect(() => {
     let didUnmount = false;
+    let previousFilepath: string | undefined;
 
     async function fetchData() {
       if (didUnmount) {
@@ -31,16 +33,23 @@ export function useImage(
       setError(undefined);
 
       try {
-        const localFilepath = await getCacheFilepath(`img_${entityID}.png`, true);
-        await apex.getCameraProxyURL(entityID, localFilepath);
-        const base64Img = await fileToBase64Image(localFilepath);
+        // Each refresh gets its own filename: reusing the same path means the
+        // path string never changes, so React skips the re-render and Raycast's
+        // markdown renderer treats it as the same cached image.
+        const newFilepath = await getCacheFilepath(`img_${entityID}_${Date.now()}.png`, true);
+        await apex.getCameraProxyURL(entityID, newFilepath);
+        const base64Img = await fileToBase64Image(newFilepath);
         if (!didUnmount) {
           const interval = getCameraRefreshInterval();
           if (interval && interval > 0) {
             setTimeout(fetchData, interval);
           }
           setLocalFilepath(base64Img);
-          setImageFilepath(localFilepath);
+          setImageFilepath(newFilepath);
+          if (previousFilepath) {
+            await fs.unlink(previousFilepath).catch(() => undefined);
+          }
+          previousFilepath = newFilepath;
         }
       } catch (error) {
         if (!didUnmount) {
@@ -57,6 +66,9 @@ export function useImage(
 
     return () => {
       didUnmount = true;
+      if (previousFilepath) {
+        fs.unlink(previousFilepath).catch(() => undefined);
+      }
     };
   }, [entityID]);
 
