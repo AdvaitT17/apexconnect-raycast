@@ -1,11 +1,10 @@
 import { showFailureToast } from "@raycast/utils";
 import { LocalStorage } from "@raycast/api";
-import fetch, { Response } from "node-fetch";
 import urljoin from "url-join";
 import fs from "fs";
-import { pipeline } from "stream";
+import { pipeline, Readable } from "stream";
 import util from "util";
-import { Agent } from "https";
+import { Agent, Response, fetch } from "undici";
 import { getWifiSSIDSync } from "./wifi";
 import * as ping from "ping";
 import { URL } from "url";
@@ -69,10 +68,10 @@ export class ApexConnectClient {
     this.preferCompanionApp = options?.preferCompanionApp === undefined ? false : options.preferCompanionApp;
   }
 
-  private httpsAgent(url: string): Agent | undefined {
+  private httpsDispatcher(url: string): Agent | undefined {
     if (url.startsWith("https://")) {
       return new Agent({
-        rejectUnauthorized: !this._ignoreCerts,
+        connect: { rejectUnauthorized: !this._ignoreCerts },
       });
     }
   }
@@ -172,7 +171,7 @@ export class ApexConnectClient {
     const fullUrl = urljoin(await this.nearestURL(), "api", url + ps);
     try {
       const response = await fetch(fullUrl, {
-        agent: this.httpsAgent(fullUrl),
+        dispatcher: this.httpsDispatcher(fullUrl),
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -192,7 +191,7 @@ export class ApexConnectClient {
     const body = JSON.stringify(params);
     //try {
     const response = await fetch(fullUrl, {
-      agent: this.httpsAgent(fullUrl),
+      dispatcher: this.httpsDispatcher(fullUrl),
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -363,7 +362,10 @@ export class ApexConnectClient {
     if (!response.ok) {
       throw new Error(`unexpected response ${response.statusText}`);
     }
-    await streamPipeline(response.body, fs.createWriteStream(params.localFilepath));
+    if (!response.body) {
+      throw new Error(`no response body for ${fullUrl}`);
+    }
+    await streamPipeline(Readable.fromWeb(response.body), fs.createWriteStream(params.localFilepath));
     return params.localFilepath;
   }
 
@@ -376,7 +378,7 @@ export class ApexConnectClient {
     let webhook_id = await LocalStorage.getItem<string>("webhook_id");
     if (!webhook_id || webhook_id.length <= 0) {
       const response = await this.post("mobile_app/registrations", registrationData);
-      const data: ApexMobileDeviceRegistrationResponse = await response.json();
+      const data = (await response.json()) as ApexMobileDeviceRegistrationResponse;
       webhook_id = data.webhook_id;
       await LocalStorage.setItem("webhook_id", webhook_id);
     }
